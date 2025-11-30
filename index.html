@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Twin in Die Manufacturing | Alumex Internship</title>
+    <!-- Tailwind CSS for Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        alumex: {
+                            navy: '#0B1120',
+                            orange: '#ea580c',
+                            orangeHover: '#c2410c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js for 2D Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Plotly.js for Heatmaps and 3D Models -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js for Markdown parsing in Chat -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        /* Custom Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Smooth transitions */
+        .step-btn { transition: all 0.2s ease-in-out; }
+        .step-btn:hover { transform: translateX(4px); }
+        .active-step { 
+            background-color: #ea580c; /* Alumex Orange */
+            color: white; 
+            border-right: 4px solid #9a3412;
+        }
+        
+        /* Chart Containers */
+        .viz-container {
+            height: 400px;
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Chatbot Animations */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chat-open { animation: slideIn 0.3s ease-out forwards; }
+        
+        /* Markdown Styles for Chat */
+        .prose p { margin-bottom: 0.5em; }
+        .prose ul { list-style-type: disc; margin-left: 1.2em; }
+        .prose strong { font-weight: 700; color: #ea580c; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 h-screen flex flex-col transition-colors duration-300">
+
+    <!-- Navbar -->
+    <nav class="bg-alumex-navy text-white p-4 shadow-lg shrink-0 z-50 transition-colors duration-300 border-b border-slate-700">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            
+            <!-- Left Side: Logo & Titles -->
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-alumex-orange rounded flex items-center justify-center font-bold text-2xl text-white shadow-md">
+                    A
+                </div>
+                <div class="flex flex-col justify-center">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="font-bold text-xl tracking-wide text-white">ALUMEX PLC</h1>
+                        <span class="text-slate-500 text-xl font-light hidden sm:inline">|</span>
+                        <span class="text-slate-300 text-lg font-medium">Internship Report</span>
+                    </div>
+                    <p class="text-sm text-alumex-orange font-medium tracking-wide">The Concept of the Digital Twin in Extrusion</p>
+                </div>
+            </div>
+
+            <!-- Right Side: Links & Dark Mode -->
+            <div class="flex items-center gap-6">
+                <div class="hidden lg:flex gap-6 text-sm font-medium text-slate-300">
+                    <a href="https://www.alumexgroup.com/" target="_blank" class="hover:text-white hover:underline transition">Corporate Site</a>
+                    <a href="https://www.qform3d.com/" target="_blank" class="hover:text-white hover:underline transition">QForm Software</a>
+                    <a href="https://www.solidworks.com/" target="_blank" class="hover:text-white hover:underline transition">SolidWorks</a>
+                </div>
+                <button onclick="toggleDarkMode()" class="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-yellow-400 hover:text-yellow-300 transition shadow border border-slate-600 focus:outline-none focus:ring-2 focus:ring-alumex-orange" title="Toggle Dark Mode">
+                    <i class="fas fa-sun" id="theme-icon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Layout -->
+    <div class="flex flex-col md:flex-row flex-1 overflow-hidden relative">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-80 bg-slate-100 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col overflow-y-auto shrink-0 transition-colors duration-300">
+            <div class="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                <h2 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Workflow Sequence</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Select a stage to view engineering details.</p>
+            </div>
+            <div id="nav-container" class="flex flex-col gap-1 p-2">
+                <!-- Navigation buttons injected by JS -->
+            </div>
+            
+            <!-- Summary Button -->
+            <div class="mt-auto p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                <button onclick="loadSummary()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded shadow text-sm font-bold transition flex items-center justify-center gap-2">
+                    <i class="fas fa-chart-line"></i> View Cost of Change
+                </button>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-6 md:p-10 transition-colors duration-300">
+            <div class="max-w-5xl mx-auto">
+                
+                <!-- Title Section -->
+                <div class="mb-8">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span id="step-number" class="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-bold rounded uppercase border border-orange-200 dark:border-orange-800/50">Overview</span>
+                        <span id="software-badge" class="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded">Engineering Logic</span>
+                    </div>
+                    <h2 id="step-title" class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white transition-colors">The Digital Twin Concept</h2>
+                </div>
+
+                <!-- Two Column Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                    
+                    <!-- Text Content -->
+                    <div class="space-y-6">
+                        <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border-l-4 border-alumex-orange transition-colors">
+                            <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center">
+                                <i class="fas fa-microscope text-alumex-orange mr-2"></i> Technical Function
+                            </h3>
+                            <p id="func-text" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed transition-colors">
+                                Please select a step from the menu to see the specific engineering operations performed during my internship.
+                            </p>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border-l-4 border-blue-500 transition-colors">
+                            <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center">
+                                <i class="fas fa-file-export text-blue-500 mr-2"></i> Key Output & Data
+                            </h3>
+                            <p id="output-text" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed transition-colors">
+                                The workflow moves from Geometric Definition → Physical Simulation → Mechanical Design → Manufacturing.
+                            </p>
+                        </div>
+
+                        <!-- Dynamic Specific Details Box -->
+                        <div id="detail-box" class="bg-slate-200 dark:bg-slate-700 p-4 rounded text-xs text-slate-700 dark:text-slate-200 font-mono hidden transition-colors border border-slate-300 dark:border-slate-600">
+                            <strong>Critical Param:</strong> <span id="param-text">N/A</span>
+                        </div>
+                    </div>
+
+                    <!-- Visualization Content -->
+                    <div class="flex flex-col gap-2">
+                        <div class="flex justify-between items-end mb-1">
+                            <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400">Interactive Visualization</h3>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 italic">Generated dynamically</span>
+                        </div>
+                        <div class="viz-container bg-white border border-slate-200 dark:border-slate-700">
+                            <canvas id="chartjsCanvas"></canvas>
+                            <div id="plotlyDiv" class="w-full h-full hidden"></div>
+                        </div>
+                        <p id="viz-caption" class="text-center text-xs text-slate-400 dark:text-slate-500 mt-2">Select a stage to view data</p>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- AI Chatbot Overlay -->
+        <div id="chat-container" class="fixed bottom-24 right-6 w-96 h-[500px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 hidden flex-col overflow-hidden z-[60]">
+            <!-- Chat Header -->
+            <div class="bg-alumex-navy p-4 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    <span class="text-white font-bold text-sm">Die Design Tool Assistant</span>
+                </div>
+                <button onclick="toggleChat()" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900">
+                <!-- Welcome Message -->
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 rounded bg-alumex-orange flex items-center justify-center shrink-0 text-white font-bold text-xs">AI</div>
+                    <div class="bg-white dark:bg-slate-800 p-3 rounded-lg rounded-tl-none shadow-sm border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300">
+                        Hello! I am your Internship Report Assistant. Ask me anything about Digital Twins, QForm simulation, or the Extrusion workflow.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0">
+                <div class="flex gap-2">
+                    <input type="text" id="user-input" placeholder="Ask a question..." class="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-sm focus:outline-none focus:border-alumex-orange dark:text-white" onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()" class="px-4 py-2 bg-alumex-orange hover:bg-orange-600 text-white rounded text-sm font-bold transition disabled:opacity-50" id="send-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-2 text-center">Powered by Gemini AI</div>
+            </div>
+        </div>
+
+        <!-- Chat Trigger Button Container -->
+        <div class="fixed bottom-6 right-6 z-[60] flex flex-col items-center gap-2 group cursor-pointer" onclick="toggleChat()">
+             <button class="w-14 h-14 bg-alumex-navy hover:bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl transition-transform hover:scale-105 border-2 border-alumex-orange">
+                <i class="fas fa-robot"></i>
+            </button>
+            <span class="text-[10px] font-bold text-alumex-navy dark:text-white bg-white dark:bg-slate-800 px-2 py-1 rounded shadow-md border border-slate-200 dark:border-slate-700 whitespace-nowrap animate-bounce">
+                Ask me about design
+            </span>
+        </div>
+    </div>
+
+    <!-- Logic Script -->
+    <script>
+        // --- API KEY CONFIGURATION ---
+        // We use a fallback strategy: Environment Key -> User Provided Key
+        const userProvidedKey = "AIzaSyBzrZsAwgHBvyQ0bE2U46AQMm6Bb0a54To";
+        const apiKey = ""; // System will inject key here if available in preview
+        const finalKey = apiKey || userProvidedKey;
+
+        // --- DATA FROM REPORT ---
+        const reportData = [
+            {
+                id: 0,
+                step: "Phase I",
+                title: "AutoCAD: The Definition",
+                software: "AutoCAD 2D",
+                function: "AutoCAD acts as the 'Gateway of Definition'. Before any 3D modeling, we must establish the Circumscribing Circle Diameter (CCD) to select the correct press (e.g., 6-inch vs 12-inch press). We also apply shrinkage factors here (approx 23 um/m.k) because aluminum shrinks as it cools from 500°C.",
+                output: "Clean DXF Files. This is the 'Digital Thread' start. We calculate the Tongue Ratio (>3:1 poses snapping risks) and establish the profile geometry.",
+                param: "Coefficient of Thermal Expansion: ~23 um/m.k",
+                vizType: "line", // ChartJS
+                vizCaption: "2D Profile Vector Geometry (CCD Check)"
+            },
+            {
+                id: 1,
+                step: "Phase II",
+                title: "SpaceClaim: Volume Extraction",
+                software: "ANSYS SpaceClaim",
+                function: "Simulation software needs the 'negative' of the die—the air volume. SpaceClaim allows us to 'flood' the die cavity to create a fluid body. We use the QExDD plugin here to automate bearing generation and clean up 'dirty' geometry from AutoCAD.",
+                output: "Watertight 3D Volume. It acts as a filter, removing bolts and chamfers that are irrelevant to fluid flow but slow down simulation.",
+                param: "Plugin Used: QExDD (Alumex Standard)",
+                vizType: "bar", // ChartJS
+                vizCaption: "Geometry Complexity Reduction (Vertices Count)"
+            },
+            {
+                id: 2,
+                step: "Phase III",
+                title: "QForm: The Simulation",
+                software: "QForm Extrusion",
+                function: "This is the 'Validation Gate'. We simulate the aluminum flow at 500°C. We analyze the Velocity Profile (Red=Fast, Blue=Slow) to prevent buckling or tearing. We also check for 'Hot Shortness' (if temp exceeds solidus limit) and seam weld integrity.",
+                output: "Velocity & Temperature Maps. If the flow is uneven, we adjust bearing lengths in SpaceClaim and re-simulate (Iterative Loop).",
+                param: "Critical Output: Exit Velocity Variance",
+                vizType: "heatmap", // Plotly
+                vizCaption: "Cross-Section Velocity Heatmap (Red = High Speed)"
+            },
+            {
+                id: 3,
+                step: "Phase IV",
+                title: "SolidWorks: Mechanical Design",
+                software: "SolidWorks 3D",
+                function: "Once physics are verified, we design the physical steel stack: Die Plate, Backer (support), and Bolster. We use 'Deformed Geometry Compensation'—offsetting the die face (e.g., -0.15mm) to counteract the bending forces (5000 tons) inside the press.",
+                output: "3D Assembly (.SLDASM). Includes interference checks for dowel pins and bolts. Exploded views are created here for assembly technicians.",
+                param: "Load Case: 5,000 Tons Press Pressure",
+                vizType: "surface", // Plotly
+                vizCaption: "3D Die Face Topology (Deformation Analysis)"
+            },
+            {
+                id: 4,
+                step: "Phase V",
+                title: "Manufacturing: G-Code",
+                software: "SolidCAM / MasterCAM",
+                function: "The 'Execution Phase'. We generate G-Code for High-Speed Machining (HSM) to cut the H13 tool steel. For the critical bearing apertures, we use 4-Axis Wire EDM to cut precise taper angles that control the flow.",
+                output: "NC Files (G1/G2/G3 commands). This is where the Digital Twin becomes physical matter. Errors here result in scrapped steel.",
+                param: "Process: Wire EDM (4-Axis)",
+                vizType: "scatter", // ChartJS
+                vizCaption: "CNC Toolpath Simulation (XY Coordinates)"
+            }
+        ];
+
+        // --- DARK MODE LOGIC ---
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                localStorage.theme = 'light';
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                localStorage.theme = 'dark';
+            }
+        }
+
+        // --- VISUALIZATION LOGIC ---
+        let currentChart = null;
+        let ctx = null; 
+        let plotlyDiv = null;
+        let canvas = null;
+
+        function init() {
+            // Dark Mode Init
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('theme-icon').classList.remove('fa-sun');
+                document.getElementById('theme-icon').classList.add('fa-moon');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            const nav = document.getElementById('nav-container');
+            ctx = document.getElementById('chartjsCanvas').getContext('2d');
+            plotlyDiv = document.getElementById('plotlyDiv');
+            canvas = document.getElementById('chartjsCanvas');
+            
+            // Build Sidebar
+            reportData.forEach((item, index) => {
+                const btn = document.createElement('button');
+                btn.className = `step-btn w-full text-left p-4 mb-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm flex items-center justify-between group inactive-step hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors`;
+                btn.onclick = () => loadStep(index);
+                btn.innerHTML = `
+                    <div>
+                        <div class="text-xs font-bold opacity-60 text-slate-500 dark:text-slate-400">${item.step}</div>
+                        <div class="font-bold text-sm text-slate-800 dark:text-slate-200">${item.software}</div>
+                    </div>
+                    <i class="fas fa-chevron-right opacity-30 group-hover:opacity-100 text-slate-400 dark:text-slate-500"></i>
+                `;
+                btn.id = `btn-${index}`;
+                nav.appendChild(btn);
+            });
+
+            loadSummary(); // Start with summary
+        }
+
+        function loadStep(index) {
+            const data = reportData[index];
+            updateText(data.step, data.title, data.function, data.output, data.param, data.vizCaption, data.software);
+            updateActiveButton(index);
+            
+            // Switch Chart Type
+            if(data.vizType === 'heatmap') drawHeatmap();
+            else if(data.vizType === 'surface') drawSurface();
+            else if(data.vizType === 'line') drawLineChart();
+            else if(data.vizType === 'bar') drawBarChart();
+            else if(data.vizType === 'scatter') drawScatterChart();
+        }
+
+        function loadSummary() {
+            updateText("CONCLUSION", "The Economics of Simulation", 
+                "The logic of this sequence is driven by the 'Cost of Change' curve. Fixing a flow imbalance in QForm (Step 3) costs a few hours of computing time.", 
+                "Fixing the same error after the die is cut (Step 5) costs thousands of dollars in scrapped H13 steel and CNC machine time. The Digital Twin is an economic safety net.",
+                "Concept: Cost Avoidance Strategy",
+                "Exponential Cost of Error Correction over Time", "Management View");
+            
+            // Clear active buttons
+            document.querySelectorAll('.step-btn').forEach(b => {
+                b.classList.remove('active-step');
+                b.classList.add('inactive-step');
+                const titleDiv = b.querySelector('.font-bold.text-sm');
+                if(titleDiv) titleDiv.classList.add('text-slate-800', 'dark:text-slate-200');
+            });
+
+            drawCostChart();
+        }
+
+        function updateText(step, title, func, output, param, caption, badge) {
+            document.getElementById('step-number').innerText = step;
+            document.getElementById('step-title').innerText = title;
+            document.getElementById('software-badge').innerText = badge;
+            document.getElementById('func-text').innerText = func;
+            document.getElementById('output-text').innerText = output;
+            document.getElementById('viz-caption').innerText = caption;
+            
+            const paramBox = document.getElementById('detail-box');
+            if(param) {
+                paramBox.classList.remove('hidden');
+                document.getElementById('param-text').innerText = param;
+            } else {
+                paramBox.classList.add('hidden');
+            }
+        }
+
+        function updateActiveButton(index) {
+            document.querySelectorAll('.step-btn').forEach(b => {
+                b.classList.remove('active-step');
+                b.classList.add('inactive-step');
+                const titleDiv = b.querySelector('.font-bold.text-sm');
+                if(titleDiv) {
+                    titleDiv.classList.remove('text-white');
+                    titleDiv.classList.add('text-slate-800', 'dark:text-slate-200');
+                }
+            });
+
+            const active = document.getElementById(`btn-${index}`);
+            if (active) {
+                active.classList.remove('inactive-step');
+                active.classList.add('active-step');
+                const titleDiv = active.querySelector('.font-bold.text-sm');
+                if(titleDiv) {
+                    titleDiv.classList.remove('text-slate-800', 'dark:text-slate-200');
+                    titleDiv.classList.add('text-white');
+                }
+            }
+        }
+
+        // --- CHARTS ---
+
+        function clearCharts() {
+            if(currentChart) { currentChart.destroy(); currentChart = null; }
+            Plotly.purge(plotlyDiv);
+            canvas.style.display = 'block';
+            plotlyDiv.classList.add('hidden');
+            plotlyDiv.style.display = 'none'; 
+        }
+
+        function drawCostChart() {
+            clearCharts();
+            let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(234, 88, 12, 0.6)'); 
+            gradient.addColorStop(1, 'rgba(234, 88, 12, 0.0)');
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['AutoCAD', 'SpaceClaim', 'QForm', 'SolidWorks', 'Manufacturing', 'Extrusion Trial'],
+                    datasets: [{
+                        label: 'Cost of Error Correction ($)',
+                        data: [10, 50, 100, 500, 5000, 25000],
+                        borderColor: '#ea580c',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { type: 'logarithmic', title: {display:true, text:'Cost ($)'} } }
+                }
+            });
+        }
+
+        function drawLineChart() {
+            clearCharts();
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    datasets: [{
+                        label: 'Profile Geometry (CCD Check)',
+                        data: [{x:0,y:0},{x:10,y:0},{x:10,y:10},{x:8,y:10},{x:8,y:2},{x:2,y:2},{x:2,y:10},{x:0,y:10},{x:0,y:0}],
+                        borderColor: '#2563eb',
+                        borderWidth: 3,
+                        tension: 0,
+                        fill: false
+                    }]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { x: {type:'linear'}, y: {type:'linear'} } 
+                }
+            });
+        }
+
+        function drawBarChart() {
+            clearCharts();
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Raw DXF Import', 'Cleaned Volume'],
+                    datasets: [{
+                        label: 'Geometry Vertices',
+                        data: [15000, 3200],
+                        backgroundColor: ['#94a3b8', '#16a34a']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function drawScatterChart() {
+            clearCharts();
+            const points = [];
+            for(let i=0; i<360; i+=5) {
+                let r = 1 + i/100;
+                points.push({ x: r*Math.cos(i*Math.PI/180), y: r*Math.sin(i*Math.PI/180) });
+            }
+            currentChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Toolpath Trajectory',
+                        data: points,
+                        borderColor: '#ea580c',
+                        showLine: true
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function drawHeatmap() {
+            clearCharts();
+            canvas.style.display = 'none';
+            plotlyDiv.style.display = 'block';
+            plotlyDiv.classList.remove('hidden');
+
+            let z = [];
+            for(let y=0; y<20; y++){
+                let row = [];
+                for(let x=0; x<20; x++){
+                    let val = 100 - Math.sqrt((x-10)**2 + (y-10)**2)*5;
+                    row.push(val);
+                }
+                z.push(row);
+            }
+
+            Plotly.newPlot(plotlyDiv, [{
+                z: z,
+                type: 'heatmap',
+                colorscale: 'Jet'
+            }], {
+                margin: {t:20,b:20,l:20,r:20},
+                title: 'Exit Velocity Profile (mm/s)'
+            }, {responsive: true});
+        }
+
+        function drawSurface() {
+            clearCharts();
+            canvas.style.display = 'none';
+            plotlyDiv.style.display = 'block';
+            plotlyDiv.classList.remove('hidden');
+
+            let z = [];
+            for(let i=0; i<20; i++){
+                let row = [];
+                for(let j=0; j<20; j++){
+                    row.push(Math.sin(i/3)*Math.cos(j/3));
+                }
+                z.push(row);
+            }
+
+            Plotly.newPlot(plotlyDiv, [{
+                z: z,
+                type: 'surface',
+                colorscale: 'Viridis'
+            }], {
+                margin: {t:0,b:0,l:0,r:0},
+                scene: { camera: { eye: {x:1.5, y:1.5, z:1.5}}}
+            }, {responsive: true});
+        }
+
+        // --- CHATBOT LOGIC ---
+        function toggleChat() {
+            const chat = document.getElementById('chat-container');
+            if (chat.classList.contains('hidden')) {
+                chat.classList.remove('hidden');
+                chat.classList.add('flex', 'chat-open');
+                document.getElementById('user-input').focus();
+            } else {
+                chat.classList.add('hidden');
+                chat.classList.remove('flex', 'chat-open');
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Add User Message
+            addMessage(message, 'user');
+            input.value = '';
+            document.getElementById('send-btn').disabled = true;
+
+            // Show Loading
+            const loadingId = addMessage('Thinking...', 'ai', true);
+
+            // Construct System Prompt based on Report Data
+            const systemPrompt = `
+                You are an AI Assistant for an Internship Report at Alumex PLC regarding "The Concept of the Digital Twin in Extrusion Die Manufacturing".
+                
+                Here is the technical context you know:
+                1. AutoCAD (Phase I): Used for Definition. Critical for CCD (Circumscribing Circle Diameter) and Shrinkage Factors (~23 um/m.k). Checks Geometric Feasibility.
+                2. SpaceClaim (Phase II): Used for Volume Extraction. Creates "watertight" fluid volumes from the "negative" of the die. Uses QExDD plugin.
+                3. QForm (Phase III): The Simulation engine. Checks Flow Balancing (Velocity/Temp maps). Critical for "Cost Avoidance" to prevent physical trials.
+                4. SolidWorks (Phase IV): Mechanical Design. Designs the Die Stack (Backer, Bolster). Uses "Deformed Geometry Compensation" to offset die deflection.
+                5. Manufacturing (Phase V): G-Code generation (SolidCAM). Uses HSM (High Speed Machining) and 4-Axis Wire EDM for bearing cuts.
+                
+                The core concept is "Cost of Change": Fixing errors in simulation (Phase III) is cheap. Fixing errors after cutting steel (Phase V) is expensive.
+                
+                Answer the user's question briefly and professionally based on this data. Use Markdown for formatting.
+            `;
+
+            try {
+                // Call Gemini API
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${finalKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: message }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] }
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Remove Loading
+                const loadingElement = document.getElementById(loadingId);
+                if(loadingElement) loadingElement.remove();
+
+                if (data.error) {
+                    addMessage("Error: " + data.error.message, 'ai');
+                } else {
+                    const aiText = data.candidates[0].content.parts[0].text;
+                    addMessage(aiText, 'ai');
+                }
+            } catch (e) {
+                console.error(e);
+                const loadingElement = document.getElementById(loadingId);
+                if(loadingElement) loadingElement.remove();
+                addMessage("Sorry, I encountered a connection error. Please check your internet or API key.", 'ai');
+            }
+
+            document.getElementById('send-btn').disabled = false;
+        }
+
+        function addMessage(text, sender, isLoading = false) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            const id = 'msg-' + Date.now();
+            div.id = id;
+            div.className = 'flex gap-3 ' + (isLoading ? 'opacity-50' : '');
+            
+            const avatar = document.createElement('div');
+            avatar.className = `w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold text-xs text-white ${sender === 'user' ? 'bg-slate-500 order-2' : 'bg-alumex-orange order-1'}`;
+            avatar.innerText = sender === 'user' ? 'YOU' : 'AI';
+
+            const bubble = document.createElement('div');
+            bubble.className = `p-3 rounded-lg shadow-sm border text-sm max-w-[80%] ${
+                sender === 'user' 
+                ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white border-slate-300 dark:border-slate-600 rounded-tr-none order-1 ml-auto' 
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 rounded-tl-none order-2 prose prose-sm dark:prose-invert'
+            }`;
+
+            if (isLoading) {
+                bubble.innerText = text;
+            } else if (sender === 'ai') {
+                bubble.innerHTML = marked.parse(text);
+            } else {
+                bubble.innerText = text;
+            }
+
+            div.appendChild(avatar);
+            div.appendChild(bubble);
+            container.appendChild(div);
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        // Start
+        window.onload = init;
+    </script>
+</body>
+</html>
