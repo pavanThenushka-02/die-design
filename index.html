@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digital Twin in Die Manufacturing | Alumex Internship</title>
-    <!-- Tailwind CSS for Styling -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,13 +22,11 @@
             }
         }
     </script>
-    <!-- Chart.js for 2D Graphs -->
+    <!-- Chart.js & Plotly -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Plotly.js for Heatmaps and 3D Models -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <!-- Icons -->
+    <!-- Icons & Markdown -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Marked.js for Markdown parsing in Chat -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
@@ -39,8 +37,15 @@
         .step-btn:hover { transform: translateX(4px); }
         .active-step { background-color: #ea580c; color: white; border-right: 4px solid #9a3412; }
         
+        /* Custom Scrollbar */
+        .content-scroll::-webkit-scrollbar { width: 6px; }
+        .content-scroll::-webkit-scrollbar-track { background: transparent; }
+        .content-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+        .dark .content-scroll::-webkit-scrollbar-thumb { background-color: #475569; }
+
         .viz-container {
-            height: 400px;
+            height: 100%;
+            min-height: 400px;
             width: 100%;
             background: white;
             border-radius: 8px;
@@ -57,15 +62,19 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .chat-open { animation: slideIn 0.3s ease-out forwards; }
-        .prose p { margin-bottom: 0.5em; }
-        .prose ul { list-style-type: disc; margin-left: 1.2em; }
+        
+        /* Markdown Styling */
+        .prose p { margin-bottom: 0.8em; line-height: 1.6; }
+        .prose ul { list-style-type: disc; margin-left: 1.2em; margin-bottom: 0.8em; }
         .prose strong { font-weight: 700; color: #ea580c; }
+        .prose h3 { font-weight: 700; margin-top: 1em; margin-bottom: 0.5em; font-size: 1.1em; color: #334155; }
+        .dark .prose h3 { color: #cbd5e1; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 h-screen flex flex-col transition-colors duration-300">
 
     <!-- Navbar -->
-    <nav class="bg-alumex-navy text-white p-4 shadow-lg shrink-0 z-50 transition-colors duration-300 border-b border-slate-700">
+    <nav class="bg-alumex-navy text-white p-4 shadow-lg shrink-0 z-50 border-b border-slate-700">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-alumex-orange rounded flex items-center justify-center font-bold text-2xl text-white shadow-md">A</div>
@@ -93,90 +102,137 @@
 
     <!-- Main Layout -->
     <div class="flex flex-col md:flex-row flex-1 overflow-hidden relative">
-        <aside class="w-full md:w-80 bg-slate-100 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col overflow-y-auto shrink-0 transition-colors duration-300">
+        
+        <!-- COLUMN 1: LEFT SIDEBAR (Navigation) -->
+        <aside class="w-full md:w-72 bg-slate-100 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col overflow-y-auto shrink-0 transition-colors duration-300">
             <div class="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                 <h2 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Workflow Sequence</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Select a stage to view engineering details.</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Select a stage to view analysis.</p>
             </div>
-            <div id="nav-container" class="flex flex-col gap-1 p-2"></div>
+            <div id="nav-container" class="flex flex-col gap-1 p-2">
+                <!-- Navigation buttons injected by JS -->
+            </div>
             <div class="mt-auto p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
                 <button onclick="loadSummary()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded shadow text-sm font-bold transition flex items-center justify-center gap-2">
-                    <i class="fas fa-chart-line"></i> View Cost of Change
+                    <i class="fas fa-chart-line"></i> Economics of Error
                 </button>
             </div>
         </aside>
 
-        <main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-6 md:p-10 transition-colors duration-300">
-            <div class="max-w-5xl mx-auto">
-                <div class="mb-8">
+        <!-- MAIN CONTENT AREA (Split into Middle and Right Columns) -->
+        <main class="flex-1 overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300 grid grid-cols-1 lg:grid-cols-12">
+            
+            <!-- COLUMN 2: MIDDLE CONTENT (Text & Logic) -->
+            <div class="lg:col-span-7 h-full overflow-y-auto p-6 md:p-8 content-scroll border-r border-slate-200 dark:border-slate-800">
+                <!-- Title Header -->
+                <div class="mb-6">
                     <div class="flex items-center gap-2 mb-2">
                         <span id="step-number" class="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-bold rounded uppercase border border-orange-200 dark:border-orange-800/50">Overview</span>
                         <span id="software-badge" class="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded">Engineering Logic</span>
                     </div>
-                    <h2 id="step-title" class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white transition-colors">The Digital Twin Concept</h2>
+                    <h2 id="step-title" class="text-3xl font-bold text-slate-900 dark:text-white transition-colors">The Digital Twin Concept</h2>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-                    <div class="space-y-6">
-                        <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border-l-4 border-alumex-orange transition-colors">
-                            <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center">
-                                <i class="fas fa-microscope text-alumex-orange mr-2"></i> Technical Function
-                            </h3>
-                            <p id="func-text" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed transition-colors">Select a step...</p>
-                        </div>
-                        <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border-l-4 border-blue-500 transition-colors">
-                            <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center">
-                                <i class="fas fa-file-export text-blue-500 mr-2"></i> Key Output & Data
-                            </h3>
-                            <p id="output-text" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed transition-colors">Workflow moves from Definition → Simulation → Design → Manufacturing.</p>
-                        </div>
-                        <div id="detail-box" class="bg-slate-200 dark:bg-slate-700 p-4 rounded text-xs text-slate-700 dark:text-slate-200 font-mono hidden transition-colors border border-slate-300 dark:border-slate-600">
-                            <strong>Critical Param:</strong> <span id="param-text">N/A</span>
+                <div class="space-y-6">
+                    <!-- Functional Importance Box -->
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border-l-4 border-alumex-orange transition-colors">
+                        <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center text-lg border-b border-slate-100 dark:border-slate-700 pb-2">
+                            <i class="fas fa-microscope text-alumex-orange mr-3"></i> Functional Importance
+                        </h3>
+                        <div class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                            <div id="func-text">Select a step...</div>
                         </div>
                     </div>
-                    <div class="flex flex-col gap-2">
-                        <div class="flex justify-between items-end mb-1">
-                            <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400">Interactive Visualization</h3>
-                            <span class="text-xs text-slate-400 dark:text-slate-500 italic">Generated dynamically</span>
-                        </div>
-                        <div class="viz-container bg-white border border-slate-200 dark:border-slate-700">
-                            <canvas id="chartjsCanvas"></canvas>
-                            <div id="plotlyDiv" class="w-full h-full hidden"></div>
-                        </div>
-                        <p id="viz-caption" class="text-center text-xs text-slate-400 dark:text-slate-500 mt-2">Select a stage to view data</p>
+
+                    <!-- Importance of Sequence Position (NEW BOX) -->
+                    <div class="bg-blue-50 dark:bg-slate-800/50 p-6 rounded-lg shadow-sm border border-blue-100 dark:border-slate-700 transition-colors">
+                        <h3 class="font-bold text-blue-900 dark:text-blue-300 mb-2 flex items-center text-md">
+                            <i class="fas fa-sort-numeric-down mr-3"></i> Importance of Sequence Position
+                        </h3>
+                        <p id="sequence-text" class="text-blue-800 dark:text-slate-400 text-sm leading-relaxed italic">
+                            Why is this step placed here?
+                        </p>
+                    </div>
+
+                    <!-- Critical Value Add Box -->
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-lg shadow-sm border-l-4 border-blue-500 transition-colors">
+                        <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center">
+                            <i class="fas fa-file-export text-blue-500 mr-3"></i> Key Output & Data
+                        </h3>
+                        <p id="output-text" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
+                            Output details...
+                        </p>
                     </div>
                 </div>
             </div>
+
+            <!-- COLUMN 3: RIGHT VISUALIZATION (Images & Metrics) -->
+            <div class="lg:col-span-5 h-full overflow-y-auto p-6 bg-slate-100 dark:bg-slate-950/50 content-scroll">
+                
+                <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Visual Analysis</h3>
+                
+                <!-- Visualization Container -->
+                <div class="viz-container bg-white border border-slate-200 dark:border-slate-700 mb-4">
+                    <canvas id="chartjsCanvas"></canvas>
+                    <div id="plotlyDiv" class="w-full h-full hidden"></div>
+                </div>
+                <p id="viz-caption" class="text-center text-xs text-slate-400 dark:text-slate-500 italic mb-6">Visualization Caption</p>
+
+                <!-- Data Cards -->
+                <div class="grid grid-cols-1 gap-3">
+                    <!-- Critical Param -->
+                    <div id="detail-box" class="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
+                        <div class="text-xs font-bold text-slate-400 uppercase mb-1">Critical Parameter</div>
+                        <div id="param-text" class="text-sm font-mono font-semibold text-alumex-orange">N/A</div>
+                    </div>
+
+                    <!-- Input / Role -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Key Input</div>
+                            <div id="input-data" class="text-xs font-semibold truncate dark:text-slate-200">-</div>
+                        </div>
+                        <div class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Primary Role</div>
+                            <div id="role-data" class="text-xs font-semibold truncate dark:text-slate-200">-</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
         </main>
 
         <!-- AI Chatbot Overlay -->
         <div id="chat-container" class="fixed bottom-24 right-6 w-96 h-[500px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 hidden flex-col overflow-hidden z-[60]">
+            <!-- Header -->
             <div class="bg-alumex-navy p-4 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                    <!-- Updated Title -->
                     <span class="text-white font-bold text-sm">Die Design Tool Assistant</span>
                 </div>
                 <button onclick="toggleChat()" class="text-slate-400 hover:text-white transition"><i class="fas fa-times"></i></button>
             </div>
+            <!-- Messages -->
             <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900">
                 <div class="flex gap-3">
                     <div class="w-8 h-8 rounded bg-alumex-orange flex items-center justify-center shrink-0 text-white font-bold text-xs">AI</div>
                     <div class="bg-white dark:bg-slate-800 p-3 rounded-lg rounded-tl-none shadow-sm border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300">
-                        Hello! I am your Internship Report Assistant. Ask me anything about Digital Twins, QForm simulation, or the Extrusion workflow.
+                        Hello! I am your Alumex Internship Assistant. I have access to your full research document on Digital Twins. Ask me about CCD, QExDD, or Flow Balancing!
                     </div>
                 </div>
             </div>
+            <!-- Input -->
             <div class="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0">
                 <div class="flex gap-2">
-                    <input type="text" id="user-input" placeholder="Ask a question..." class="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-sm focus:outline-none focus:border-alumex-orange dark:text-white" onkeypress="handleKeyPress(event)">
+                    <input type="text" id="user-input" placeholder="Ask about shrinkage, EDM, etc..." class="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-sm focus:outline-none focus:border-alumex-orange dark:text-white" onkeypress="handleKeyPress(event)">
                     <button onclick="sendMessage()" class="px-4 py-2 bg-alumex-orange hover:bg-orange-600 text-white rounded text-sm font-bold transition disabled:opacity-50" id="send-btn"><i class="fas fa-paper-plane"></i></button>
                 </div>
                 <div class="text-[10px] text-slate-400 mt-2 text-center">Powered by Gemini AI</div>
             </div>
         </div>
 
-        <!-- Chat Trigger with Label -->
+        <!-- Chat Trigger -->
         <div class="fixed bottom-6 right-6 z-[60] flex flex-col items-center gap-2 group cursor-pointer" onclick="toggleChat()">
              <button class="w-14 h-14 bg-alumex-navy hover:bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl transition-transform hover:scale-105 border-2 border-alumex-orange">
                 <i class="fas fa-robot"></i>
@@ -187,19 +243,86 @@
         </div>
     </div>
 
+    <!-- Script Logic -->
     <script>
-        // --- SECURITY CONFIGURATION (OBFUSCATION) ---
-        // Using Base64 encoded key provided by user
+        // --- API KEY (Encoded to prevent GitHub Blocking) ---
         const encodedKey = "QUl6YVN5QllXNTVYYjMzajJaUGwyOEFNU0RHWDEzOTZqLWpSckFZ"; 
 
+        // --- FULL ACADEMIC DATA FROM "THE CONCEPT OF THE DIGITAL TWIN.DOCX" ---
         const reportData = [
-            { id: 0, step: "Phase I", title: "AutoCAD: The Definition", software: "AutoCAD 2D", function: "AutoCAD acts as the 'Gateway of Definition'. Before any 3D modeling, we must establish the Circumscribing Circle Diameter (CCD) to select the correct press (e.g., 6-inch vs 12-inch press). We also apply shrinkage factors here (approx 23 um/m.k) because aluminum shrinks as it cools from 500°C.", output: "Clean DXF Files. Digital Thread start. Tongue Ratio calculation.", param: "Coefficient of Thermal Expansion: ~23 um/m.k", vizType: "line", vizCaption: "2D Profile Vector Geometry (CCD Check)" },
-            { id: 1, step: "Phase II", title: "SpaceClaim: Volume Extraction", software: "ANSYS SpaceClaim", function: "Simulation software needs the 'negative' of the die. SpaceClaim allows us to 'flood' the die cavity to create a fluid body using the QExDD plugin.", output: "Watertight 3D Volume. Filters bolts and chamfers.", param: "Plugin Used: QExDD (Alumex Standard)", vizType: "bar", vizCaption: "Geometry Complexity Reduction (Vertices Count)" },
-            { id: 2, step: "Phase III", title: "QForm: The Simulation", software: "QForm Extrusion", function: "The 'Validation Gate'. Simulates flow at 500°C. Analyzes Velocity Profile to prevent buckling. Checks 'Hot Shortness'.", output: "Velocity & Temperature Maps. Iterative Loop.", param: "Critical Output: Exit Velocity Variance", vizType: "heatmap", vizCaption: "Cross-Section Velocity Heatmap (Red = High Speed)" },
-            { id: 3, step: "Phase IV", title: "SolidWorks: Mechanical Design", software: "SolidWorks 3D", function: "Designs the physical steel stack: Die Plate, Backer, Bolster. Uses 'Deformed Geometry Compensation' to offset bending.", output: "3D Assembly (.SLDASM). Interference checks.", param: "Load Case: 5,000 Tons Press Pressure", vizType: "surface", vizCaption: "3D Die Face Topology (Deformation Analysis)" },
-            { id: 4, step: "Phase V", title: "Manufacturing: G-Code", software: "SolidCAM / MasterCAM", function: "The 'Execution Phase'. Generates G-Code for HSM (High-Speed Machining) and 4-Axis Wire EDM.", output: "NC Files. Digital Twin becomes physical.", param: "Process: Wire EDM (4-Axis)", vizType: "scatter", vizCaption: "CNC Toolpath Simulation (XY Coordinates)" }
+            {
+                id: 0,
+                step: "Phase I",
+                title: "AutoCAD: The Definition",
+                software: "AutoCAD 2D",
+                function: `**Gateway of Definition:**\n\n**1. Circumscribing Circle Diameter (CCD):** The intern determines the smallest circle enclosing the profile. This dictates press selection. A 6-inch CCD fits smaller, cheaper presses; a 12-inch CCD requires high-tonnage lines (e.g., 9,000 MT capacity).\n\n**2. Tongue Ratio Calculation:** Ratios > 3:1 (depth vs width) create thin steel cantilevers that break under high friction. This check prevents die failure.\n\n**3. Shrinkage Application:** Aluminum exits the die at 500°C–550°C. As it cools, it shrinks. The die aperture must be cut larger based on the thermal expansion coefficient of ~23 µm/m·K.`,
+                sequenceLogic: "AutoCAD is placed first because it is the **Gateway of Definition**. It offers **Low Computational Cost** (faster to iterate in 2D than 3D) and provides **Standardization** for Quality Control.",
+                output: "Clean 2D DXF Files. Acts as the 'Digital Thread' start. Standardized document for Quality Control inspection.",
+                param: "Shrinkage: ~23 µm/m·K | Temp: 550°C",
+                vizType: "line",
+                vizCaption: "2D Profile Vector Geometry (CCD Check)",
+                role: "Conceptualization",
+                input: "Customer Req."
+            },
+            {
+                id: 1,
+                step: "Phase II",
+                title: "SpaceClaim: Volume Extraction",
+                software: "ANSYS SpaceClaim",
+                function: `**Volume Extraction & Pre-Processing:**\n\n**1. Negative Volume Creation:** Simulation analyzes the *fluid* (aluminum), not the steel. SpaceClaim 'floods' the die cavity to create a watertight fluid body.\n\n**2. QExDD Plugin:** Uses Alumex-specific plugins for:\n- **Parametric Bearing Generation:** Turns lines into adjustable flow-control surfaces.\n- **Automated Die Set Creation:** Builds Die Plate, Mandrel, and Backer automatically.\n\n**3. Geometry Cleaning:** Removes 'noise' like bolts and dowel pins that slow down simulation but don't affect flow.`,
+                sequenceLogic: "Necessary because 2D lines (AutoCAD) lack volume, and complex 3D (SolidWorks) has too much 'noise'. SpaceClaim acts as a **Filter** to create a Physics-Ready Model.",
+                output: "Watertight 3D Fluid Volume (Physics-Ready Model). Simplified Geometry for Meshing.",
+                param: "Plugin: QExDD | Focus: Fluid Volume",
+                vizType: "bar",
+                vizCaption: "Geometry Complexity Reduction (Vertices Count)",
+                role: "Pre-processing",
+                input: "2D DXF"
+            },
+            {
+                id: 2,
+                step: "Phase III",
+                title: "QForm: The Simulation",
+                software: "QForm Extrusion",
+                function: `**The Validation Gate (Thermodynamics + Plasticity):**\n\n**1. Flow Balancing:** Predicts Exit Velocity. Red=Fast, Blue=Slow. Uneven flow causes buckling or tearing.\n\n**2. Temperature Evolution:** Friction generates heat. If temp exceeds the alloy's solidus limit (Hot Shortness), surface defects occur. Helps define the 'Extrusion Window'.\n\n**3. Die Deflection:** Under 5,000 tons of pressure, steel bends. QForm predicts deflection (e.g., 0.5mm) to prevent profile distortion.`,
+                sequenceLogic: "This is the **Validation Gate**. Finding errors here costs mere computing hours. Finding them later costs thousands in scrap. It secures the foundation for detailed design.",
+                output: "Velocity, Temperature & Stress Maps. Iterative Loop (Simulate -> Fix -> Simulate).",
+                param: "Load: 5,000 Tons | Deflection: ~0.5mm",
+                vizType: "heatmap",
+                vizCaption: "Cross-Section Velocity Heatmap (Red = High Speed)",
+                role: "Simulation (CAE)",
+                input: "Fluid Volume"
+            },
+            {
+                id: 3,
+                step: "Phase IV",
+                title: "SolidWorks: Mechanical Design",
+                software: "SolidWorks 3D",
+                function: `**Mechanical Implementation & Assembly:**\n\n**1. Die Stack Design:** Models the Die Plate, Backer (resists bending), Bolster (transfers load), and Mandrel (suspends core).\n\n**2. Deformed Geometry Compensation:** A critical 'Reverse Engineering' step. If QForm predicts the mandrel moves +0.15mm downstream, the SolidWorks model is offset by -0.15mm (Counter-deformation). This ensures the die bends *into* the correct shape under load.`,
+                sequenceLogic: "This is the **Mechanical Implementation**. It effectively 'packages' the verified flow geometry from QForm into a robust industrial tool.",
+                output: "3D Assembly (.SLDASM), Detailed Engineering Drawings for CAM.",
+                param: "Compensation: -0.15mm Reverse Offset",
+                vizType: "surface",
+                vizCaption: "3D Die Face Topology (Deformation Analysis)",
+                role: "Mechanical Design",
+                input: "Optimized Geometry"
+            },
+            {
+                id: 4,
+                step: "Phase V",
+                title: "Manufacturing: G-Code",
+                software: "SolidCAM / MasterCAM",
+                function: `**Execution Phase (Physical Realization):**\n\n**1. CNC Milling (HSM):** Roughing (bulk removal) followed by Finishing using high-speed paths.\n\n**2. Wire EDM (Electrical Discharge Machining):** Used for the critical **Bearing Aperture**. Requires **4-Axis G-Code** where the top and bottom wire guides move independently (U, V axes vs X, Y axes). This creates the precise 'Taper' angles needed to control aluminum flow velocity.`,
+                sequenceLogic: "This is the **Execution Phase**. It is strictly the final step because the 'Cost of Change' here is exponential (Scrap Steel).",
+                output: "NC Files (G-Code). Zero tolerance for error (High Cost of Change).",
+                param: "Tech: 4-Axis Wire EDM | Taper Cutting",
+                vizType: "scatter",
+                vizCaption: "CNC Toolpath Simulation (XY Coordinates)",
+                role: "Manufacturing (CAM)",
+                input: "3D Solid Model"
+            }
         ];
 
+        // --- DARK MODE LOGIC ---
         function toggleDarkMode() {
             const html = document.documentElement;
             const icon = document.getElementById('theme-icon');
@@ -232,12 +355,13 @@
                 btn.id = `btn-${index}`;
                 nav.appendChild(btn);
             });
+            // Start with Summary
             loadSummary();
         }
 
         function loadStep(index) {
             const data = reportData[index];
-            updateText(data.step, data.title, data.function, data.output, data.param, data.vizCaption, data.software);
+            updateText(data.step, data.title, data.function, data.output, data.param, data.vizCaption, data.software, data.role, data.input, data.sequenceLogic);
             updateActiveButton(index);
             if(data.vizType === 'heatmap') drawHeatmap();
             else if(data.vizType === 'surface') drawSurface();
@@ -247,7 +371,12 @@
         }
 
         function loadSummary() {
-            updateText("CONCLUSION", "The Economics of Simulation", "The logic is driven by the 'Cost of Change' curve. Fixing errors in QForm (Step 3) is cheap.", "Fixing errors after cutting steel (Step 5) is expensive. The Digital Twin is a safety net.", "Concept: Cost Avoidance Strategy", "Exponential Cost of Error Correction over Time", "Management View");
+            updateText("CONCLUSION", "The Economics of Simulation", 
+                "**The 'Cost of Change' Curve:**\n\nThe logic of this sequence is driven by the economics of error correction.\n\n- **Phase I & II (2D/3D Modeling):** Cost is practically zero (time only).\n- **Phase III (Simulation):** Cost is low (computing hours). Finding a flow imbalance here avoids a physical trial.\n- **Phase IV (Detailed Design):** Cost increases (engineering hours to update assemblies).\n- **Phase V (Manufacturing):** Cost becomes high (machine time, tool wear).\n- **Post-Production (Press Trial):** Cost is exponential (downtime, billet scrap, missed delivery).",
+                "Optimized Workflow. Data Integrity ensured: AutoCAD -> SpaceClaim -> QForm -> SolidWorks -> CAM.",
+                "Concept: Cost Avoidance Strategy", "Exponential Cost of Error Correction over Time", "Management View", "Analysis", "Entire Lifecycle",
+                "The order is architected to resolve the most unpredictable variables (material flow) at the earliest stages when modification costs are lowest.");
+            
             document.querySelectorAll('.step-btn').forEach(b => {
                 b.classList.remove('active-step'); b.classList.add('inactive-step');
                 const titleDiv = b.querySelector('.font-bold.text-sm'); if(titleDiv) titleDiv.classList.add('text-slate-800', 'dark:text-slate-200');
@@ -255,13 +384,20 @@
             drawCostChart();
         }
 
-        function updateText(step, title, func, output, param, caption, badge) {
+        function updateText(step, title, func, output, param, caption, badge, role, input, sequence) {
             document.getElementById('step-number').innerText = step;
             document.getElementById('step-title').innerText = title;
             document.getElementById('software-badge').innerText = badge;
-            document.getElementById('func-text').innerText = func;
+            // Use Markdown parsing for the rich text function description
+            document.getElementById('func-text').innerHTML = marked.parse(func);
             document.getElementById('output-text').innerText = output;
             document.getElementById('viz-caption').innerText = caption;
+            
+            // New fields
+            if(role) document.getElementById('role-data').innerText = role;
+            if(input) document.getElementById('input-data').innerText = input;
+            if(sequence) document.getElementById('sequence-text').innerHTML = marked.parse(sequence);
+
             const paramBox = document.getElementById('detail-box');
             if(param) { paramBox.classList.remove('hidden'); document.getElementById('param-text').innerText = param; } else { paramBox.classList.add('hidden'); }
         }
@@ -320,27 +456,42 @@
             document.getElementById('send-btn').disabled = true;
             const loadingId = addMessage('Thinking...', 'ai', true);
 
-            // DECODE KEY ON THE FLY
+            // DECODE KEY
             let finalKey = "";
-            try {
-                finalKey = atob(encodedKey);
-            } catch(e) {
-                console.error("Key Decode Error");
-            }
+            try { finalKey = atob(encodedKey); } catch(e) { console.error("Key Decode Error"); }
 
+            // UPDATED SYSTEM PROMPT WITH FULL DOCUMENT CONTENT
             const systemPrompt = `
-                You are an AI Assistant for an Internship Report at Alumex PLC regarding "The Concept of the Digital Twin in Extrusion Die Manufacturing".
+                You are an AI Assistant for Alumex PLC's "Concept of the Digital Twin" Internship Report.
                 
-                Here is the technical context you know:
-                1. AutoCAD (Phase I): Used for Definition. Critical for CCD (Circumscribing Circle Diameter) and Shrinkage Factors (~23 um/m.k). Checks Geometric Feasibility.
-                2. SpaceClaim (Phase II): Used for Volume Extraction. Creates "watertight" fluid volumes from the "negative" of the die. Uses QExDD plugin.
-                3. QForm (Phase III): The Simulation engine. Checks Flow Balancing (Velocity/Temp maps). Critical for "Cost Avoidance" to prevent physical trials.
-                4. SolidWorks (Phase IV): Mechanical Design. Designs the Die Stack (Backer, Bolster). Uses "Deformed Geometry Compensation" to offset die deflection.
-                5. Manufacturing (Phase V): G-Code generation (SolidCAM). Uses HSM (High Speed Machining) and 4-Axis Wire EDM for bearing cuts.
+                USE THIS KNOWLEDGE BASE TO ANSWER:
                 
-                The core concept is "Cost of Change": Fixing errors in simulation (Phase III) is cheap. Fixing errors after cutting steel (Phase V) is expensive.
+                1. **AutoCAD (Gateway of Definition):**
+                   - Determine **Circumscribing Circle Diameter (CCD)**: Smallest circle enclosing profile. 6" CCD = Small Press, 12" CCD = High Tonnage (9000MT line).
+                   - **Tongue Ratio**: Depth vs Width. Ratio > 3:1 risks breakage (cantilever effect).
+                   - **Shrinkage**: Aluminum exits at 500-550°C. Thermal expansion is ~23 µm/m·K. Die must be cut larger.
                 
-                Answer the user's question briefly and professionally based on this data. Use Markdown for formatting.
+                2. **SpaceClaim (Volume Extraction):**
+                   - Creates "negative" fluid volume for QForm.
+                   - Uses **QExDD Plugin** for: Parametric Bearing Generation (adjustable flow control) and Automated Die Set Creation.
+                   - Cleaning: Removes "noise" like bolts/chamfers that slow simulation.
+                
+                3. **QForm (Validation Gate):**
+                   - **Flow Balancing**: Velocity Prediction (Red=Fast, Blue=Slow).
+                   - **Thermal**: Predicts "Hot Shortness" if temp exceeds solidus. Defines "Extrusion Window".
+                   - **Deflection**: Predicts die bending (e.g., 0.5mm) under 5000 Tons load.
+                
+                4. **SolidWorks (Mechanical Design):**
+                   - Models Die Stack: Die Plate, Backer (resists bending), Bolster, Mandrel.
+                   - **Deformed Geometry Compensation**: If QForm says +0.15mm deflection, SolidWorks offsets geometry by -0.15mm (Counter-deformation).
+                
+                5. **Manufacturing (Execution Phase):**
+                   - **CNC Milling (HSM)**: Roughing & Finishing.
+                   - **Wire EDM**: Cuts critical **Bearing Aperture**. Uses **4-Axis G-Code** (U,V independent of X,Y) for Taper angles.
+                
+                6. **Economics:** "Cost of Change" curve. Error in Phase III = Cheap. Error in Phase V = Expensive (Scrap steel, Machine time).
+                
+                Answer briefly and professionally using this data.
             `;
 
             try {
@@ -364,10 +515,9 @@
                     addMessage(aiText, 'ai');
                 }
             } catch (e) {
-                console.error(e);
                 const loadingElement = document.getElementById(loadingId);
                 if(loadingElement) loadingElement.remove();
-                addMessage("Connection Error. Please check your internet.", 'ai');
+                addMessage("Connection Error.", 'ai');
             }
             document.getElementById('send-btn').disabled = false;
         }
@@ -390,24 +540,14 @@
                 : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 rounded-tl-none order-2 prose prose-sm dark:prose-invert'
             }`;
 
-            if (isLoading) {
-                bubble.innerText = text;
-            } else if (sender === 'ai') {
-                bubble.innerHTML = marked.parse(text);
-            } else {
-                bubble.innerText = text;
-            }
+            if (isLoading) bubble.innerText = text;
+            else if (sender === 'ai') bubble.innerHTML = marked.parse(text);
+            else bubble.innerText = text;
 
-            div.appendChild(avatar);
-            div.appendChild(bubble);
-            container.appendChild(div);
-            
-            // Scroll to bottom
+            div.appendChild(avatar); div.appendChild(bubble); container.appendChild(div);
             container.scrollTop = container.scrollHeight;
             return id;
         }
-
-        // Start
         window.onload = init;
     </script>
 </body>
